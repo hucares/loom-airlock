@@ -5,6 +5,7 @@ WORKSPACE ?= $(shell pwd)/../events_radar
 # Auth volumes - mount host credentials into container
 GH_AUTH := $(HOME)/.config/gh
 CLAUDE_AUTH := $(HOME)/.claude
+SSH_AUTH := $(HOME)/.ssh
 
 .PHONY: build create start stop attach shell logs daemon auth run clean nuke status
 
@@ -22,9 +23,11 @@ create: build
 			-v $(WORKSPACE):/workspace \
 			-v $(GH_AUTH):/root/.config/gh \
 			-v $(CLAUDE_AUTH):/root/.claude \
+			-v $(SSH_AUTH):/root/.ssh:ro \
 			--env-file .env \
-			$(IMAGE) bash; \
-		echo "Container '$(CONTAINER)' created. Run 'make start' to enter."; \
+			$(IMAGE) bash \
+		&& echo "Container '$(CONTAINER)' created. Run 'make start' to enter." \
+		|| { echo "Failed to create container."; exit 1; }; \
 	fi
 
 # Start and attach to the container
@@ -50,12 +53,13 @@ logs:
 # Authenticate Claude Code and GitHub (first-time setup)
 auth:
 	@docker start $(CONTAINER) >/dev/null 2>&1 || true
-	@echo "=== Authenticate inside the container ==="
-	@echo "Run: claude /login"
-	@echo "Run: gh auth login"
-	@echo "Then: exit"
-	@echo "==========================================="
-	@docker exec -it $(CONTAINER) bash
+	@echo "=== Authenticating GitHub ==="
+	@docker exec -it $(CONTAINER) bash -c 'gh auth login'
+	@echo ""
+	@echo "=== Authenticating Claude Code ==="
+	@docker exec -it $(CONTAINER) bash -c 'claude /login'
+	@echo ""
+	@echo "=== Authentication complete ==="
 
 # Start container and launch daemon
 run:
