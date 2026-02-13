@@ -6,17 +6,29 @@ Sandboxed Docker environment for running [Loom](https://github.com/rjwalters/loo
 
 Loom orchestrates multiple Claude Code instances via tmux to autonomously implement features, review PRs, and merge code. Running this on bare metal is risky — agents run with `--dangerously-skip-permissions` and can execute arbitrary shell commands. The airlock contains the blast radius.
 
+## Prerequisites
+
+Docker Desktop must be running before any `make` commands will work:
+
+```bash
+open -a Docker               # macOS — start Docker Desktop
+```
+
 ## Quick Start
 
 ```bash
+# First-time setup
 cp env.example .env          # Add your ANTHROPIC_API_KEY
 make create                  # Build image + create persistent container
-make start                   # Enter the container
+make auth                    # Open shell to authenticate (once)
 
-# Inside the container:
-claude /login                # Authenticate Claude Code (once)
-gh auth login                # Authenticate GitHub (once)
-./.loom/scripts/loom-daemon.sh --merge   # Start autonomous mode
+# Inside the auth shell:
+claude /login                # Authenticate Claude Code
+gh auth login                # Authenticate GitHub
+exit                         # Back to host
+
+# Daily use
+make run                     # Start container + launch daemon
 ```
 
 ## Commands
@@ -29,6 +41,8 @@ gh auth login                # Authenticate GitHub (once)
 | `make stop` | Stop the container |
 | `make attach` | Reattach to running container |
 | `make shell` | Open second shell into running container |
+| `make auth` | Open shell to authenticate Claude Code and GitHub (first-time) |
+| `make run` | Start container and launch daemon |
 | `make daemon` | Start Loom daemon from outside the container |
 | `make logs` | Tail shepherd logs |
 | `make status` | Check container status |

@@ -6,7 +6,7 @@ WORKSPACE ?= $(shell pwd)/../events_radar
 GH_AUTH := $(HOME)/.config/gh
 CLAUDE_AUTH := $(HOME)/.claude
 
-.PHONY: build create start stop attach shell logs daemon clean nuke status
+.PHONY: build create start stop attach shell logs daemon auth run clean nuke status
 
 # Build the image
 build:
@@ -46,6 +46,22 @@ shell:
 # Tail daemon logs inside the container
 logs:
 	@docker exec -it $(CONTAINER) bash -c 'tail -f /workspace/.loom/logs/loom-shepherd-*.log'
+
+# Authenticate Claude Code and GitHub (first-time setup)
+auth:
+	@docker start $(CONTAINER) >/dev/null 2>&1 || true
+	@echo "=== Authenticate inside the container ==="
+	@echo "Run: claude /login"
+	@echo "Run: gh auth login"
+	@echo "Then: exit"
+	@echo "==========================================="
+	@docker exec -it $(CONTAINER) bash
+
+# Start container and launch daemon
+run:
+	@docker start $(CONTAINER) >/dev/null 2>&1 || true
+	@docker exec -it $(CONTAINER) bash -c \
+		'unset CLAUDECODE && ./.loom/scripts/loom-daemon.sh --merge'
 
 # Start daemon directly (container must be running)
 daemon:
